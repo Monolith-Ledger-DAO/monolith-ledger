@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mnlith | Monolith Ledger</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;800&display=swap');
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #0A0A0A;
+            color: #EAEAEA;
+            font-family: 'Manrope', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+        .container {
+            text-align: center;
+            z-index: 1;
+            padding: 20px;
+        }
+        .logo-title {
+            font-size: clamp(4rem, 12vw, 8rem);
+            font-weight: 800;
+            letter-spacing: -4px;
+            margin: 0;
+            line-height: 1;
+            background: linear-gradient(135deg, #FFFFFF, #BDBDBD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .full-name {
+            font-size: clamp(1.2rem, 3vw, 1.7rem);
+            font-weight: 400;
+            color: #C0C0C0;
+            margin-top: 15px;
+            letter-spacing: 1px;
+        }
+        .subtitle {
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            font-weight: 300;
+            color: #808080;
+            margin-top: 8px;
+        }
+        .background-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(128, 128, 128, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(128, 128, 128, 0.1) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.25;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-grid"></div>
+    <div class="container">
+        <h1 class="logo-title">Mnlith</h1>
+        <p class="full-name">Monolith Ledger</p>
+        <p class="subtitle">Real estate, written in stone. Owned by all.</p>
+    </div>
+</body>
+</html>
