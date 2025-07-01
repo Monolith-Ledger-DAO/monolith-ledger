@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title MonolithLedgerDAO
@@ -19,7 +21,8 @@ contract MonolithLedgerDAO is
     GovernorCountingSimple,
     GovernorVotes,
     GovernorVotesQuorumFraction,
-    GovernorTimelockControl
+    GovernorTimelockControl,
+    Ownable
 {
     /**
      * @dev Constructor to set up the DAO with initial settings.
@@ -43,6 +46,7 @@ contract MonolithLedgerDAO is
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(_initialQuorumFraction)
         GovernorTimelockControl(_timelock)
+        Ownable(msg.sender)
     {}
 
     // The following functions are overrides required by Solidity.
@@ -98,9 +102,6 @@ contract MonolithLedgerDAO is
         return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
     }
 
-    // The compiler insists that _queueOperations and _executeOperations are the ones
-    // that need overriding due to conflicts.
-
     function _queueOperations(
         uint256 proposalId,
         address[] memory targets,
@@ -108,10 +109,6 @@ contract MonolithLedgerDAO is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
-        // Assuming GovernorTimelockControl implements _queueOperations or a function
-        // with this signature that we need to call.
-        // If GovernorTimelockControl uses _queue, this call might need adjustment
-        // or the function itself in GovernorTimelockControl is what we are overriding.
         return GovernorTimelockControl._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
@@ -124,4 +121,5 @@ contract MonolithLedgerDAO is
     ) internal virtual override(Governor, GovernorTimelockControl) {
         GovernorTimelockControl._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
+
 }
