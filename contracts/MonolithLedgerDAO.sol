@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import "./MonolithGovernanceToken.sol";
 
 /**
  * @title MonolithLedgerDAO
@@ -34,8 +33,8 @@ contract MonolithLedgerDAO is
     constructor(
         IVotes _token,
         TimelockController _timelock,
-        uint256 _initialVotingDelay,
-        uint256 _initialVotingPeriod,
+        uint48 _initialVotingDelay, // Changed from uint256
+        uint32 _initialVotingPeriod, // Changed from uint256
         uint256 _initialProposalThreshold,
         uint256 _initialQuorumFraction
     )
@@ -48,11 +47,11 @@ contract MonolithLedgerDAO is
 
     // The following functions are overrides required by Solidity.
 
-    function votingDelay() public view override(IVotes, GovernorSettings) returns (uint256) {
+    function votingDelay() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
     }
 
-    function votingPeriod() public view override(IVotes, GovernorSettings) returns (uint256) {
+    function votingPeriod() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
     }
 
@@ -60,7 +59,69 @@ contract MonolithLedgerDAO is
         return super.proposalThreshold();
     }
 
-    function quorum(uint256 blockNumber) public view override(IGovernor, GovernorVotesQuorumFraction) returns (uint256) {
+    function quorum(uint256 blockNumber) public view override(Governor, GovernorVotesQuorumFraction) returns (uint256) {
         return super.quorum(blockNumber);
+    }
+
+    // --- Overrides to resolve conflicts with GovernorTimelockControl ---
+
+    function state(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (ProposalState)
+    {
+        return GovernorTimelockControl.state(proposalId);
+    }
+
+    function proposalNeedsQueuing(uint256 proposalId)
+        public
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (bool)
+    {
+        return GovernorTimelockControl.proposalNeedsQueuing(proposalId);
+    }
+
+    function _executor() internal view virtual override(Governor, GovernorTimelockControl) returns (address) {
+        return GovernorTimelockControl._executor();
+    }
+
+    // GovernorTimelockControl._cancel expects 4 arguments.
+    // This overrides the conflicting _cancel functions.
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal virtual override(Governor, GovernorTimelockControl) returns (uint256) {
+        return GovernorTimelockControl._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    // The compiler insists that _queueOperations and _executeOperations are the ones
+    // that need overriding due to conflicts.
+
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
+        // Assuming GovernorTimelockControl implements _queueOperations or a function
+        // with this signature that we need to call.
+        // If GovernorTimelockControl uses _queue, this call might need adjustment
+        // or the function itself in GovernorTimelockControl is what we are overriding.
+        return GovernorTimelockControl._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal virtual override(Governor, GovernorTimelockControl) {
+        GovernorTimelockControl._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 }
