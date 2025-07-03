@@ -3,6 +3,7 @@
 import { ConnectButton } from "@/components/ConnectButton";
 import { useLITHInfo } from "@/hooks/useLITHInfo";
 import { formatUnits } from "viem";
+import { UserProfile } from "@/components/UserProfile";
 
 export default function Home() {
   const { name, symbol, totalSupply, isLoading } = useLITHInfo();
@@ -38,6 +39,9 @@ export default function Home() {
             </p>
           </div>
         )}
+      </div>
+      <div className="mt-8 w-full max-w-md">
+        <UserProfile />
       </div>
     </main>
   );

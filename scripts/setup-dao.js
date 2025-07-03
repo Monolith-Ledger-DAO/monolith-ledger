@@ -14,14 +14,24 @@ async function main() {
   console.log("Asset Token:", await assetToken.getAddress());
   console.log("Timelock:", await timelock.getAddress());
 
+  // Получаем signer (деплоер)
+  const [deployer] = await hre.ethers.getSigners();
+  console.log("Deployer address:", deployer.address);
+
+  // --- ШАГ 1.5: Распределение тестовых токенов LITH ---
+  console.log("\nDistributing initial LITH tokens...");
+  const testUserAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"; // Hardhat Account #1
+  const amountToDistribute = hre.ethers.parseUnits("1000000", 18); // 1,000,000 LITH
+  const transferTx = await governanceToken.transfer(testUserAddress, amountToDistribute);
+  await transferTx.wait();
+  const userBalance = await governanceToken.balanceOf(testUserAddress);
+  console.log(`✓ Success! New balance of ${testUserAddress} is ${hre.ethers.formatUnits(userBalance, 18)} LITH.`);
+  // --- КОНЕЦ БЛОКА ---
+
   // Получаем хэши ролей
   const PROPOSER_ROLE = "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1";
   const EXECUTOR_ROLE = "0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63";
   const TIMELOCK_ADMIN_ROLE = "0x5f58e3a2316349923ce3780f8d587db2d72378aed66a8261c916544fa6846ca5";
-
-  // Получаем signer (деплоер)
-  const [deployer] = await hre.ethers.getSigners();
-  console.log("Deployer address:", deployer.address);
 
   try {
     // 1. Назначаем роль PROPOSER DAO

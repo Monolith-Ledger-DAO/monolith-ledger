@@ -1,37 +1,72 @@
 "use client";
 
-import { useReadContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { contracts } from "@/config/contracts";
-import MonolithGovernanceToken from "@/abi/MonolithGovernanceToken.json";
+import { monolithGovernanceTokenABI } from "@/abi/MonolithGovernanceToken.abi";
+import { Address, formatUnits } from "viem";
 
+// Базовый хук для чтения информации о токене
 export function useLITHInfo() {
-  const {
-    data: tokenInfo,
-    error,
-    isLoading,
-  } = useReadContract({
-    address: contracts.governanceToken as `0x${string}`,
-    abi: MonolithGovernanceToken.abi,
+  const contractConfig = {
+    address: contracts.governanceToken as Address,
+    abi: monolithGovernanceTokenABI,
+  };
+
+  const { data: name, isLoading: isNameLoading } = useReadContract({
+    ...contractConfig,
     functionName: "name",
   });
 
-  const { data: symbol } = useReadContract({
-    address: contracts.governanceToken as `0x${string}`,
-    abi: MonolithGovernanceToken.abi,
+  const { data: symbol, isLoading: isSymbolLoading } = useReadContract({
+    ...contractConfig,
     functionName: "symbol",
   });
 
-  const { data: totalSupply } = useReadContract({
-    address: contracts.governanceToken as `0x${string}`,
-    abi: MonolithGovernanceToken.abi,
+  const { data: totalSupply, isLoading: isTotalSupplyLoading } = useReadContract({
+    ...contractConfig,
     functionName: "totalSupply",
   });
 
-  return {
-    name: tokenInfo,
-    symbol,
-    totalSupply,
-    isLoading,
-    error,
-  };
+  return { name, symbol, totalSupply, isLoading: isNameLoading || isSymbolLoading || isTotalSupplyLoading };
+}
+
+// Новый хук для получения данных о пользователе
+export function useUserLITHAccount() {
+    const { address } = useAccount();
+
+    const { data: balance, refetch: refetchBalance } = useReadContract({
+        address: contracts.governanceToken as Address,
+        abi: monolithGovernanceTokenABI,
+        functionName: 'balanceOf',
+        args: [address!],
+        query: { enabled: !!address },
+    });
+
+    const { data: delegate, refetch: refetchDelegate } = useReadContract({
+        address: contracts.governanceToken as Address,
+        abi: monolithGovernanceTokenABI,
+        functionName: 'delegates',
+        args: [address!],
+        query: { enabled: !!address },
+    });
+    
+    const { data: hash, writeContract, isPending: isDelegating } = useWriteContract();
+
+    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+    const formattedBalance = balance ? Number(formatUnits(balance, 18)).toFixed(4) : "0";
+
+    return {
+        balance,
+        formattedBalance,
+        delegate,
+        isDelegating,
+        isConfirming,
+        isConfirmed,
+        writeContract,
+        refetch: () => {
+            refetchBalance();
+            refetchDelegate();
+        }
+    }
 }
