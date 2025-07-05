@@ -1,57 +1,66 @@
 "use client";
 
 import { useUserLITHAccount } from "@/hooks/useLITHInfo";
-import { useAccount } from "wagmi";
+import { useAccount, useContractWrite, useWaitForTransactionReceipt } from "wagmi";
 import { useState, useEffect } from "react";
-import { monolithGovernanceTokenABI } from "@/abi/MonolithGovernanceToken.abi";
 import { Address } from "viem";
 import { contracts } from "@/config/contracts";
+import { monolithGovernanceTokenABI } from "@/abi/MonolithGovernanceToken.abi";
 
 export function UserProfile() {
   const { address, isConnected, chain } = useAccount();
   const {
     formattedBalance,
     delegate,
-    isDelegating,
-    isConfirming,
-    isConfirmed,
-    writeContract,
-    refetch
+    isDelegating: isLoadingFromHook,
+    isConfirming: isConfirmingFromHook,
+    isConfirmed: isConfirmedFromHook,
+    refetch,
+    error: hookError,
   } = useUserLITHAccount();
   const [delegateTo, setDelegateTo] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  // Автоматически подставлять свой адрес для делегирования
+  // Новый способ делегирования через wagmi useContractWrite
+  const { data: hash, isPending: isDelegating, writeContract, error: writeError } = useContractWrite();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
   useEffect(() => {
     if (address) setDelegateTo(address);
   }, [address]);
+
+  useEffect(() => {
+    if (isConfirmed) {
+      refetch();
+    }
+  }, [isConfirmed, refetch]);
+
+  useEffect(() => {
+    if (hookError || writeError) {
+      setError(hookError || (writeError instanceof Error ? writeError.message : String(writeError)));
+    }
+  }, [hookError, writeError]);
 
   const isValidAddress = (addr: string | undefined): addr is Address => {
     return !!addr && addr.startsWith("0x") && addr.length === 42;
   };
 
-  const handleDelegate = async () => {
+  const handleDelegate = () => {
     setError("");
-    if (!isValidAddress(address) || !isValidAddress(delegateTo)) {
-      setError("Некорректный адрес для делегирования.");
+    if (!isValidAddress(delegateTo)) {
+      setError("Некорректный адрес для делегирования");
       return;
     }
-    try {
-      await writeContract({
-        address: contracts.governanceToken as Address,
-        abi: monolithGovernanceTokenABI,
-        functionName: "delegate",
-        args: [delegateTo as Address],
-      });
-      // После успешной отправки транзакции обновить данные
-      refetch();
-    } catch (e: any) {
-      setError(e?.message || "Ошибка делегирования");
-    }
+    writeContract({
+      address: contracts.governanceToken as Address,
+      abi: monolithGovernanceTokenABI,
+      functionName: "delegate",
+      args: [delegateTo],
+    });
   };
 
   if (!isConnected) {
-    return <div>Подключите кошелек для отображения профиля.</div>;
+    return <div>Подключите кошелёк для отображения профиля.</div>;
   }
 
   if (!chain || chain.id !== 31337) {
@@ -75,14 +84,15 @@ export function UserProfile() {
           />
           <button
             onClick={handleDelegate}
-            disabled={isDelegating || !isValidAddress(delegateTo) || !isValidAddress(address)}
+            disabled={isDelegating || !isValidAddress(delegateTo) || !isValidAddress(address) || isConfirming}
             className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
           >
-            {isDelegating ? "Делегирование..." : "Делегировать"}
+            {isDelegating || isConfirming ? "Делегирование..." : "Делегировать"}
           </button>
         </div>
       )}
       {error && <div className="text-red-600 mt-2">{error}</div>}
+      {isDelegating && <div className="text-yellow-600 mt-2">Ожидание MetaMask...</div>}
       {isConfirming && <div className="text-yellow-600 mt-2">Ожидание подтверждения...</div>}
       {isConfirmed && <div className="text-green-600 mt-2">Делегирование успешно!</div>}
     </div>

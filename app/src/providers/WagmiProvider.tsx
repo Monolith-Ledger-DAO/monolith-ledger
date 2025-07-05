@@ -3,10 +3,10 @@
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { hardhat } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConnectKitProvider } from "connectkit";
 import { injected } from "wagmi/connectors";
+import { ConnectKitProvider } from "connectkit";
 
-const config = createConfig({
+export const config = createConfig({
   chains: [hardhat],
   transports: {
     [hardhat.id]: http("http://127.0.0.1:8545"),
@@ -22,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider>{children}</ConnectKitProvider>
+        <ConnectKitProvider>
+          {children}
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

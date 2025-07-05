@@ -4,6 +4,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { contracts } from "@/config/contracts";
 import { monolithGovernanceTokenABI } from "@/abi/MonolithGovernanceToken.abi";
 import { Address, formatUnits } from "viem";
+import { useState, useEffect } from "react";
 
 // Базовый хук для чтения информации о токене
 export function useLITHInfo() {
@@ -33,28 +34,35 @@ export function useLITHInfo() {
 // Новый хук для получения данных о пользователе
 export function useUserLITHAccount() {
     const { address } = useAccount();
+    const [error, setError] = useState<string>("");
+    const [isLoading, setIsLoading] = useState(false);
 
-    const { data: balance, refetch: refetchBalance } = useReadContract({
+    const { data: balance, refetch: refetchBalance, isLoading: isBalanceLoading, error: balanceError } = useReadContract({
         address: contracts.governanceToken as Address,
         abi: monolithGovernanceTokenABI,
         functionName: 'balanceOf',
-        args: [address!],
+        args: address ? [address] : undefined,
         query: { enabled: !!address },
     });
 
-    const { data: delegate, refetch: refetchDelegate } = useReadContract({
+    const { data: delegate, refetch: refetchDelegate, isLoading: isDelegateLoading, error: delegateError } = useReadContract({
         address: contracts.governanceToken as Address,
         abi: monolithGovernanceTokenABI,
         functionName: 'delegates',
-        args: [address!],
+        args: address ? [address] : undefined,
         query: { enabled: !!address },
     });
     
-    const { data: hash, writeContract, isPending: isDelegating } = useWriteContract();
-
+    const { data: hash, writeContract, isPending: isDelegating, error: writeError } = useWriteContract();
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
     const formattedBalance = balance ? Number(formatUnits(balance, 18)).toFixed(4) : "0";
+
+    useEffect(() => {
+        if (balanceError || delegateError || writeError) {
+            setError(balanceError?.message || delegateError?.message || writeError?.message || "");
+        }
+    }, [balanceError, delegateError, writeError]);
 
     return {
         balance,
@@ -64,6 +72,8 @@ export function useUserLITHAccount() {
         isConfirming,
         isConfirmed,
         writeContract,
+        isLoading: isBalanceLoading || isDelegateLoading || isDelegating || isConfirming,
+        error,
         refetch: () => {
             refetchBalance();
             refetchDelegate();
